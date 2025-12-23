@@ -1,0 +1,143 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  role      String   @default("user") // admin, instructor, user
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  posts     Post[]
+  materials Material[]
+}
+
+model Post {
+  id          String    @id @default(cuid())
+  title       String
+  slug        String    @unique
+  content     String
+  excerpt     String?
+  status      String    @default("draft") // draft, published
+  authorId    String
+  author      User      @relation(fields: [authorId], references: [id])
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id])
+  tags        PostTag[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  publishedAt DateTime?
+}
+
+model Category {
+  id        String     @id @default(cuid())
+  name      String
+  slug      String     @unique
+  parentId  String?
+  parent    Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children  Category[] @relation("CategoryHierarchy")
+  posts     Post[]
+  materials Material[]
+  createdAt DateTime   @default(now())
+}
+
+model Tag {
+  id    String    @id @default(cuid())
+  name  String
+  slug  String    @unique
+  posts PostTag[]
+}
+
+model PostTag {
+  postId String
+  tagId  String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+}
+
+model Material {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  fileUrl     String
+  fileName    String
+  fileType    String
+  fileSize    Int
+  folderId    String?
+  folder      Folder?   @relation(fields: [folderId], references: [id])
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id])
+  authorId    String
+  author      User      @relation(fields: [authorId], references: [id])
+  orderIndex  Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Folder {
+  id         String     @id @default(cuid())
+  name       String
+  parentId   String?
+  parent     Folder?    @relation("FolderHierarchy", fields: [parentId], references: [id])
+  children   Folder[]   @relation("FolderHierarchy")
+  materials  Material[]
+  orderIndex Int        @default(0)
+  createdAt  DateTime   @default(now())
+}
+
+model Course {
+  id          String          @id @default(cuid())
+  title       String
+  slug        String          @unique
+  description String?
+  sections    CourseSection[]
+  notes       CourseNote[]
+  files       CourseFile[]
+  orderIndex  Int             @default(0)
+  createdAt   DateTime        @default(now())
+}
+
+model CourseSection {
+  id         String       @id @default(cuid())
+  title      String
+  courseId   String
+  course     Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  notes      CourseNote[]
+  files      CourseFile[]
+  orderIndex Int          @default(0)
+  createdAt  DateTime     @default(now())
+}
+
+model CourseNote {
+  id        String         @id @default(cuid())
+  title     String
+  content   String
+  courseId  String
+  course    Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  sectionId String?
+  section   CourseSection? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+}
+
+model CourseFile {
+  id        String         @id @default(cuid())
+  title     String
+  fileName  String
+  fileUrl   String
+  fileType  String
+  fileSize  Int
+  courseId  String
+  course    Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  sectionId String?
+  section   CourseSection? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  createdAt DateTime       @default(now())
+}
